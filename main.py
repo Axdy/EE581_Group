@@ -1,22 +1,35 @@
-import cv2
-import glob
-import os
-import imutils
+import torch
+from torch.autograd import Variable
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision as tv
 
-path = "./BSR_bsds500/BSR/BSDS500/data/images/train"
+class Net(nn.Module):
+    def __init__(self):
+        super(Net,self).__init__()
+        self.conv = nn.Conv2d(1,1,5)
 
-data_set_input = []
+    def forward(self,x):
+        x = self.conv(x)
+        return x
 
-for filename in glob.glob(os.path.join(path, '*.jpg')):
-    image = cv2.imread(filename,0)
+def imrotate(x):
+    if x.size != (481, 321):
+        x = x.rotate(90, expand=True)
+    return x;
 
-    rows, cols = image.shape
-    
-    if ((rows, cols) != (481, 321)):
-        image = imutils.rotate_bound(image, 90)
+#path to input images
+path = './BSR_bsds500/BSR/BSDS500/data/images/train'
 
-    print(image.shape)
 
-    data_set_input.append(image)
+BSR_transform = tv.transforms.Compose([
+    tv.transforms.Grayscale(),
+    tv.transforms.Lambda(lambda x : imrotate(x)),
+    tv.transforms.ToTensor()
+])
 
-print (len(data_set_input))
+train_set = tv.datasets.ImageFolder(root = path, transform = BSR_transform)
+train_loader = torch.utils.data.DataLoader(train_set, batch_size=20, shuffle=True)
+
+for data in train_loader:
+    print(data[0].size())
